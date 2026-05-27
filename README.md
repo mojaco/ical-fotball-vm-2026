@@ -9,7 +9,7 @@ This project generates a dynamic and fully automated iCal feed (.ics) for all 10
 * **Smart iCal Updates (SEQUENCE):** Alerts subscriber calendar apps (Apple, Google, Outlook) of data changes automatically so entries refresh seamlessly without forcing users to re-subscribe.
 
 ## Demo with Norwegian Time Zone
-Here you can try a [fully functional version](https://script.google.com/macros/s/AKfycbwFo5SbGN7ouJe9_8KBuDQWE1xHba7_hO1EB2E49bLoUmf2ShIrhTuYsVTUgTRy6f7xrw/exec), customized for the Norwegian Time Zone
+Here you can try a [fully functional version](http://bit.ly/3S352PQ), customized for the Norwegian Time Zone
 
 ## 🛠️ Architecture & Data Flow
 ```text
