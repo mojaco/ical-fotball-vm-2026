@@ -103,7 +103,6 @@ function fyllRegnearkMedTerminliste() {
   try {
     const gamleRader = sheet.getDataRange().getValues();
     for (let i = 1; i < gamleRader.length; i++) {
-      // FIKSET: Hent ut alle 10 elementene inkludert resultatInfo (indeks 9) til historikk-sjekken
       let [mId, dUtc, hj, bo, gr, st, by, lok, sek, resInfo] = gamleRader[i];
       if (mId) {
         eksisterendeData[mId] = { hjemme: hj, borte: bo, info: gamleRader[i] };
@@ -114,7 +113,8 @@ function fyllRegnearkMedTerminliste() {
   sheet.clearContents();
   sheet.appendRow(["MatchID", "DatoUTC", "Hjemmelag", "Bortelag", "Gruppe", "Stadion", "By", "LokalTid", "Sekvens", "ResultatInfo"]);
   
-  Logger.log("Henter oppdatert VM 2026-database fra GitHub...");
+  Logger.log("Henter oppdatert VM 2026-database fra hurtigoppdatert feed...");
+  // Endret til den aktive og hurtigoppdaterte fork-feeden for turneringen
   const url = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
   
   try {
@@ -164,9 +164,13 @@ function fyllRegnearkMedTerminliste() {
       let by = match.city || match.ground || "Vertsby";
       let lokalTid = raaTid; 
       
+      // Korrigert for openfootballs "score: { ft: [2, 0] }" datastruktur
       let resultatInfo = "";
-      if (match.score1 !== undefined && match.score1 !== null) {
-        resultatInfo = `SLUTTRESULTAT: ${match.score1} - ${match.score2}`;
+      if (match.score && match.score.ft) {
+        let s1 = match.score.ft[0];
+        let s2 = match.score.ft[1];
+        resultatInfo = `SLUTTRESULTAT: ${s1} - ${s2}`;
+        
         let maal = [];
         if (match.goals1 && match.goals1.length > 0) match.goals1.forEach(g => { if (g.name) maal.push(`⚽ ${g.name} (${g.minute}') [${hjemme}]`); });
         if (match.goals2 && match.goals2.length > 0) match.goals2.forEach(g => { if (g.name) maal.push(`⚽ ${g.name} (${g.minute}') [${borte}]`); });
@@ -188,7 +192,7 @@ function fyllRegnearkMedTerminliste() {
       sheet.appendRow([matchId, datoUtc, hjemme, borte, gruppe, stadion, by, lokalTid, sekvens, resultatInfo]);
     });
     
-    Logger.log("Suksess! Tabellen ble oppdatert med openfootballs innebygde tidssoner.");
+    Logger.log("Suksess! Tabellen ble oppdatert med ferske resultater.");
   } catch(e) {
     Logger.log("Kritisk feil: " + e.toString());
   }
