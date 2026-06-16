@@ -19,7 +19,9 @@ function doGet() {
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "X-WR-CALNAME:Fotball-VM 2026",
-    "X-WR-TIMEZONE:Europe/Oslo"
+    "X-WR-TIMEZONE:Europe/Oslo",
+    "X-PUBLISHED-TTL:PT24H",          // Forteller apper at feeden oppdateres døgnkontinuerlig
+    "REFRESH-INTERVAL;VALUE=DURATION:PT24H" // Tvinger Apple Calendar til å sette "Hver dag" (Daily) automatisk
   ].join("\r\n") + "\r\n";
 
   for (let i = 1; i < data.length; i++) {
