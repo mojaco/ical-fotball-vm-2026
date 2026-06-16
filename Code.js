@@ -23,7 +23,6 @@ function doGet() {
   ].join("\r\n") + "\r\n";
 
   for (let i = 1; i < data.length; i++) {
-    // Hent ut alle 10 kolonnene korrekt
     let [matchId, datoUtc, hjemme, borte, gruppe, stadion, by, lokalTid, sekvens, resultatInfo] = data[i];
     
     if (!matchId || !datoUtc) continue;
@@ -39,18 +38,23 @@ function doGet() {
 
     let tittel = `⚽ ${hjemme} – ${borte} [${gruppe}]`;
     
-    // Hvis kampen er ferdig, legg til resultatet direkte i kalendertittelen
     if (resultatInfo && resultatInfo.trim().includes("SLUTTRESULTAT")) {
       let renScore = resultatInfo.split(" | ")[0].replace("SLUTTRESULTAT: ", "").trim();
       tittel = `🏁 (${renScore}) ${hjemme} – ${borte}`;
     }
 
-    let lokasjon = `${stadion}, ${by}`;
+    // FIKSET: Unngå dobbeltkonveksjon hvis stadion og by er identiske i regnearket
+    let lokasjonVisning = `${stadion} (${by})`;
+    if (stadion.trim().toLowerCase() === by.trim().toLowerCase()) {
+      lokasjonVisning = stadion;
+    }
     
-    // Bygg opp beskrivelsen
+    let lokasjon = lokasjonVisning;
+    
+    // Bygg opp beskrivelsen med den fikset lokasjonsvisningen
     let beskrivelseLinjer = [
       `Kamp: ${gruppe.includes('finale') ? gruppe : 'Gruppespill'}`,
-      `Stadion: ${stadion} (${by})`,
+      `Stadion: ${lokasjonVisning}`,
       ``,
       `Tidspunkt:`,
       `• Klokkeslett i Norge: ${norskTidStreng} (Dato: ${norskDatoStreng})`,
@@ -58,7 +62,6 @@ function doGet() {
       ``
     ];
 
-    // Hvis det finnes et resultat, legger vi det til i beskrivelsen
     if (resultatInfo && resultatInfo.trim() !== "") {
       beskrivelseLinjer.push(`📢 ${resultatInfo.replace(/ \| /g, "\\n📢 ")}`);
     } else {
@@ -92,7 +95,6 @@ function doGet() {
   return ContentService.createTextOutput(icalString)
     .setMimeType(ContentService.MimeType.TEXT);
 }
-
 // ==========================================
 // 2. FYLL HELE TERMINLISTEN FRA GITHUB-DATABASE
 // ==========================================
