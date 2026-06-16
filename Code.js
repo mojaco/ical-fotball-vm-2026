@@ -3,8 +3,6 @@
 // ==========================================
 const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
 const SHEET_NAME = "Kamper";
-// Du må legge inn din egen Gemini API-nøkkel i Google Apps Script Project Settings (Script Properties) 
-// eller lime den inn direkte her som en streng (ikke anbefalt å dele offentlig).
 const GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY") || "DIN_API_NØKKEL_HER";
 
 // ==========================================
@@ -25,7 +23,7 @@ function doGet() {
   ].join("\r\n") + "\r\n";
 
   for (let i = 1; i < data.length; i++) {
-    // Hent ut alle 10 kolonnene (lagt til resultatInfo til slutt)
+    // Hent ut alle 10 kolonnene korrekt
     let [matchId, datoUtc, hjemme, borte, gruppe, stadion, by, lokalTid, sekvens, resultatInfo] = data[i];
     
     if (!matchId || !datoUtc) continue;
@@ -41,9 +39,9 @@ function doGet() {
 
     let tittel = `⚽ ${hjemme} – ${borte} [${gruppe}]`;
     
-    // Hvis kampen er ferdig, legg til resultatet direkte i kalendertittelen!
-    if (resultatInfo && resultatInfo.includes("SLUTTRESULTAT")) {
-      let renScore = resultatInfo.split(" | ")[0].replace("SLUTTRESULTAT: ", "");
+    // Hvis kampen er ferdig, legg til resultatet direkte i kalendertittelen
+    if (resultatInfo && resultatInfo.trim().includes("SLUTTRESULTAT")) {
+      let renScore = resultatInfo.split(" | ")[0].replace("SLUTTRESULTAT: ", "").trim();
       tittel = `🏁 (${renScore}) ${hjemme} – ${borte}`;
     }
 
@@ -61,7 +59,7 @@ function doGet() {
     ];
 
     // Hvis det finnes et resultat, legger vi det til i beskrivelsen
-    if (resultatInfo) {
+    if (resultatInfo && resultatInfo.trim() !== "") {
       beskrivelseLinjer.push(`📢 ${resultatInfo.replace(/ \| /g, "\\n📢 ")}`);
     } else {
       beskrivelseLinjer.push(`Status: ${hjemme.includes('Vinner') || hjemme.includes('Nr 3') ? 'Venter på endelig tabell.' : 'Kamp ikke startet.'}`);
@@ -95,8 +93,6 @@ function doGet() {
     .setMimeType(ContentService.MimeType.TEXT);
 }
 
-
-
 // ==========================================
 // 2. FYLL HELE TERMINLISTEN FRA GITHUB-DATABASE
 // ==========================================
@@ -107,7 +103,8 @@ function fyllRegnearkMedTerminliste() {
   try {
     const gamleRader = sheet.getDataRange().getValues();
     for (let i = 1; i < gamleRader.length; i++) {
-      let [mId, dUtc, hj, bo, gr, st, by, lok, sek] = gamleRader[i];
+      // FIKSET: Hent ut alle 10 elementene inkludert resultatInfo (indeks 9) til historikk-sjekken
+      let [mId, dUtc, hj, bo, gr, st, by, lok, sek, resInfo] = gamleRader[i];
       if (mId) {
         eksisterendeData[mId] = { hjemme: hj, borte: bo, info: gamleRader[i] };
       }
@@ -133,14 +130,12 @@ function fyllRegnearkMedTerminliste() {
       let matchId = match.num ? `wm2026-match-${match.num}` : `wm2026-match-${index + 1}`;
       
       let raaDato = match.date || "";
-      let raaTid = match.time || ""; // Inneholder f.eks. "13:00 UTC-6"
+      let raaTid = match.time || ""; 
       
       let datoUtc = "";
       if (raaDato && raaTid) {
-        // Formater "13:00 UTC-6" til "13:00:00-06:00" som er gyldig ISO 8601
         let renTid = raaTid.replace("UTC", "").replace(" ", "") + ":00"; 
         
-        // Sørg for at pluss/minus-offsett blir riktig formatert (f.eks -06:00 i stedet for -6:00)
         if (renTid.includes("-") && renTid.split("-")[1].length === 4) {
           let deler = renTid.split("-");
           renTid = deler[0] + "-0" + deler[1];
@@ -150,29 +145,24 @@ function fyllRegnearkMedTerminliste() {
           renTid = deler[0] + "+0" + deler[1];
         }
 
-        // Sett sammen til en fullstendig ISO-streng
         let isoStreng = `${raaDato}T${renTid}`;
-        
-        // new Date() regner nå OM automatisk til din lokale maskintid basert på offsettet!
         let parseDato = new Date(isoStreng);
         
         if (!isNaN(parseDato.getTime())) {
-          // Konverter til ren UTC-streng med 'Z' for regnearket
           datoUtc = parseDato.toISOString().replace(".000", "");
         } else {
-          datoUtc = "2026-06-11T19:00:00Z"; // Fallback
+          datoUtc = "2026-06-11T19:00:00Z"; 
         }
       } else {
         datoUtc = "2026-06-11T19:00:00Z";
       }
       
-      // Hent riktige feltnavn basert på rådataene dine
       let hjemme = match.team1 || match.team1_placeholder || "Ukjent lag";
       let borte = match.team2 || match.team2_placeholder || "Ukjent lag";
       let gruppe = match.group || match.round || "Gruppespill";
       let stadion = match.ground || match.stadium || match.venue || "TBD Stadion";
       let by = match.city || match.ground || "Vertsby";
-      let lokalTid = raaTid; // Bevarer "13:00 UTC-6" som den rene lokale teksten
+      let lokalTid = raaTid; 
       
       let resultatInfo = "";
       if (match.score1 !== undefined && match.score1 !== null) {
